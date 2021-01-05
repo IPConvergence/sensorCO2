@@ -1,25 +1,5 @@
-// Part1: IOT Raspberry
-var Gpio = require('onoff').Gpio; //include onoff to interact with the GPIO
-var LED = new Gpio(4, 'out'); //use GPIO pin 4 as output
-var pushButton = new Gpio(17, 'in', 'both'); //use GPIO pin 17 as input, and 'both' button presses, and releases should be handled
+// Part 1: Generate the Crypto Material for Eliptic Curve
 
-pushButton.watch(function (err, value) { //Watch for hardware interrupts on pushButton GPIO, specify callback function
-  if (err) { //if an error
-    console.error('There was an error', err); //output error message to console
-  return;
-  }
-  LED.writeSync(value); //turn LED on or off depending on the button state (0 or 1)
-});
-
-function unexportOnClose() { //function to run when exiting program
-  LED.writeSync(0); // Turn LED off
-  LED.unexport(); // Unexport LED GPIO to free resources
-  pushButton.unexport(); // Unexport Button GPIO to free resources
-};
-
-process.on('SIGINT', unexportOnClose);
-
-// Part 2: ZenCode Section
 const { zenroom_exec, zencode_exec } = require('zenroom')
 
 // Zencode Hello World!
@@ -38,3 +18,35 @@ zencode_exec(zencode)
 	.catch((error) => {
 		throw new Error(error);
     });
+
+// Part 2: Capture Temperature and Humidity from Sensor
+var sensorLib = require("node-dht-sensor");
+
+var app = {
+  sensors: [
+    {
+      name: "Indoor",
+      type: 11,
+      pin: 4
+    }
+  ],
+  read: function() {
+    for (var sensor in this.sensors) {
+      var readout = sensorLib.read(
+        this.sensors[sensor].type,
+        this.sensors[sensor].pin
+      );
+      console.log(
+        `[${this.sensors[sensor].name}] ` +
+          `temperature: ${readout.temperature.toFixed(1)}°C, ` +
+          `humidity: ${readout.humidity.toFixed(1)}%`
+      );
+    }
+    setTimeout(function() {
+      app.read();
+    }, 2000);
+  }
+};
+
+app.read();
+
